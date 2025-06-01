@@ -80,12 +80,12 @@ WSGI_APPLICATION = 'notificationsystem.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # Use PostgreSQL backend
-        'NAME': 'notifications_db',                    # Replace with your database name
-        'USER': 'postgres',                    # Replace with your PostgreSQL user
-        'PASSWORD': 'thamer4a',            # Replace with your PostgreSQL password
-        'HOST': 'localhost',                       # Or your database server hostname
-        'PORT': '5432',                            # Default PostgreSQL port
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('PGDATABASE', 'account_db_kpsn'),  # fallback to your DB name
+        'USER': os.environ.get('PGUSER', 'thamer'),               # fallback username
+        'PASSWORD': os.environ.get('PGPASSWORD'),                  # *must be set in env*
+        'HOST': os.environ.get('PGHOST', 'dpg-d0tflpqdbo4c739ks99g-a'),  # your internal hostname
+        'PORT': os.environ.get('PGPORT', '5432'),                  # default postgres port
     }
 }
 
