@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    container_name: profile_service
+    ports:
+      - "8008:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    environment:
+      DJANGO_SETTINGS_MODULE: profiles-service.settings
+      DATABASE_NAME: profile_db
+      DATABASE_USER: thamer
+      DATABASE_PASSWORD: thamer4a
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+    volumes:
+      - .:/app
+    restart: always
+
+  db:
+    image: postgres:13  # Updated to PostgreSQL 17
+    container_name: postgres-profile
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_DB: profile_db
+      POSTGRES_USER: thamer
+      POSTGRES_PASSWORD: thamer4a
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thamer -d profile_db"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 5s
+
+volumes:
+  postgres_data:
