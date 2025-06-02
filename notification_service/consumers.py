@@ -17,9 +17,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'notificationsystem.settings')  
 from django.conf import settings
 from .models import Notification 
 # Configuration RabbitMQ
-RABBITMQ_HOST = getattr(settings, 'RABBITMQ_HOST', 'rabbitmq-hj5y.onrender.com')
-RABBITMQ_PORT = getattr(settings, 'RABBITMQ_PORT', 5672)
-RABBITMQ_QUEUE = getattr(settings, 'RABBITMQ_QUEUE', 'generate_contract')
+RABBITMQ_HOST = 'rabbitmq-hj5y.onrender.com'
+RABBITMQ_PORT = 5672
+RABBITMQ_QUEUE ='generate_contract'
 
 # Configuration Email (Brevo SMTP)
 SMTP_SERVER = 'smtp-relay.brevo.com'
@@ -107,7 +107,7 @@ def start_notification_service():
     print("Notification service module loaded.", flush=True)
     while True:
         try:
-            print("Connecting to RabbitMQ host:", os.environ.get('RABBITMQ_HOST'))
+            print("Connecting to RabbitMQ host:", RABBITMQ_HOST)
             connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
                     host=RABBITMQ_HOST,
