@@ -5,23 +5,21 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import threading
 import time
+import os
+import django
+
+# Initialize Django (adjust the settings module name if needed)
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'notificationsystem.settings')
+django.setup()
+
 from django.conf import settings
 from .models import Notification
-import django
-import os
+from django.db import transaction, connection
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'notificationsystem.settings')  # replace with your settings module
+# RabbitMQ CloudAMQP URL
+CLOUDAMQP_URL = 'amqps://dxapqekt:BbFWQ0gUl1O8u8gHIUV3a4KLZacyrzWt@possum.lmq.cloudamqp.com/dxapqekt'
 
-
-
-from django.conf import settings
-from .models import Notification 
-# Configuration RabbitMQ
-RABBITMQ_HOST = 'rabbitmq-hj5y.onrender.com'
-RABBITMQ_PORT = 5672
-RABBITMQ_QUEUE ='generate_contract'
-
-# Configuration Email (Brevo SMTP)
+# Email (Brevo SMTP) Config
 SMTP_SERVER = 'smtp-relay.brevo.com'
 SMTP_PORT = 587
 SMTP_USERNAME = '7e8bcf002@smtp-brevo.com'
@@ -51,52 +49,30 @@ def callback(ch, method, properties, body):
         event = message.get('event')
         payload = message.get('payload', {})
         email = payload.get('email')
-        user=payload.get('user')
+        user = payload.get('user')
         rental_request_id = payload.get('rental_request_id')
         status = payload.get('status')
-        print("user",user)
 
         subject = ""
-        body = ""
+        body_content = ""
 
         if event == 'rental.confirmed':
             subject = "Votre réservation a été confirmée"
-            body = f"Bonjour,\n\nVotre demande de location (ID: {rental_request_id}) a été confirmée. Statut : {status}.\n\nMerci."
+            body_content = f"Bonjour,\n\nVotre demande de location (ID: {rental_request_id}) a été confirmée. Statut : {status}.\n\nMerci."
         elif event == 'rental.canceled':
             subject = "Votre réservation a été annulée"
-            body = f"Bonjour,\n\nVotre demande de location (ID: {rental_request_id}) a été annulée. Statut : {status}.\n\nMerci."
+            body_content = f"Bonjour,\n\nVotre demande de location (ID: {rental_request_id}) a été annulée. Statut : {status}.\n\nMerci."
         else:
             print(f"Unhandled event type: {event}")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
-        send_email(email, subject, body)
-        from django.db import transaction, connection
-        from django.db import connection
-        print(f"DB connection alias: {connection.alias}")
-        print(f"DB connection settings: {connection.settings_dict}")
-        print(f"Is connection closed? {connection.is_usable()}")
+        send_email(email, subject, body_content)
 
-        try:
-            print(f"DB connection alias: {connection.alias}")
-            print(f"DB connection settings: {connection.settings_dict}")
-            print(f"Is connection closed? {connection.is_usable()}")
-            with transaction.atomic():
-                notif = Notification(user=user, title=subject)
-                notif.save()
-                print(f"Notification saved: {notif.id} - {notif.title}")
-
-            transaction.commit()
-           
-
-            all_notifications = Notification.objects.all()
-            print("All notifications in DB:")
-            for n in all_notifications:
-                print(f"{n.id} - {n.user} - {n.title}")
-
-        except Exception as e:
-            print(f"Failed to create notification: {e}")
-
+        with transaction.atomic():
+            notif = Notification(user=user, title=subject)
+            notif.save()
+            print(f"Notification saved: {notif.id} - {notif.title}")
 
     except Exception as e:
         print(f"Error processing message: {e}")
@@ -107,19 +83,14 @@ def start_notification_service():
     print("Notification service module loaded.", flush=True)
     while True:
         try:
-            print("Connecting to RabbitMQ host:", RABBITMQ_HOST)
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(
-                    host=RABBITMQ_HOST,
-                    port=RABBITMQ_PORT,
-                    heartbeat=int(os.environ.get('RABBITMQ_HEARTBEAT', 600)),
-                    blocked_connection_timeout=int(os.environ.get('RABBITMQ_TIMEOUT', 300))
-                )
-            )
+            print("Connecting to RabbitMQ via CloudAMQP...")
+            parameters = pika.URLParameters(CLOUDAMQP_URL)
+            connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
-            channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+            queue_name = 'generate_contract'
+            channel.queue_declare(queue=queue_name, durable=True)
             channel.basic_qos(prefetch_count=1)
-            channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=callback)
+            channel.basic_consume(queue=queue_name, on_message_callback=callback)
             print("Waiting for messages. Service is running...")
             channel.start_consuming()
         except pika.exceptions.AMQPConnectionError as e:
@@ -129,5 +100,5 @@ def start_notification_service():
             print(f"Unexpected error: {e}. Retrying in 5 seconds...")
             time.sleep(5)
 
-# Auto-start the consumer thread when app is ready
+# Auto-start the consumer thread when the app is ready
 threading.Thread(target=start_notification_service, daemon=True).start()
