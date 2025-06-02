@@ -107,7 +107,7 @@ def start_notification_service():
     print("Notification service module loaded.", flush=True)
     while True:
         try:
-            print("Connecting to RabbitMQ...")
+            print("Connecting to RabbitMQ host:", os.environ.get('RABBITMQ_HOST'))
             connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
                     host=RABBITMQ_HOST,
