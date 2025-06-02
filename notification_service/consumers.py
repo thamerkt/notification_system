@@ -110,8 +110,8 @@ def start_notification_service():
             print("Connecting to RabbitMQ...")
             connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
-                    host=os.environ.get('RABBITMQ_HOST', 'host.docker.internal'),
-                    port=int(os.environ.get('RABBITMQ_PORT', 5672)),
+                    host=RABBITMQ_HOST,
+                    port=RABBITMQ_PORT,
                     heartbeat=int(os.environ.get('RABBITMQ_HEARTBEAT', 600)),
                     blocked_connection_timeout=int(os.environ.get('RABBITMQ_TIMEOUT', 300))
                 )
