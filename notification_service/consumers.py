@@ -6,20 +6,13 @@ from email.mime.multipart import MIMEMultipart
 import threading
 import time
 import os
-import django
-
-# Initialize Django (adjust the settings module name if needed)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'notificationsystem.settings')
-django.setup()
 
 from django.conf import settings
 from .models import Notification
 from django.db import transaction, connection
 
-# RabbitMQ CloudAMQP URL
 CLOUDAMQP_URL = 'amqps://dxapqekt:BbFWQ0gUl1O8u8gHIUV3a4KLZacyrzWt@possum.lmq.cloudamqp.com/dxapqekt'
 
-# Email (Brevo SMTP) Config
 SMTP_SERVER = 'smtp-relay.brevo.com'
 SMTP_PORT = 587
 SMTP_USERNAME = '7e8bcf002@smtp-brevo.com'
@@ -100,5 +93,5 @@ def start_notification_service():
             print(f"Unexpected error: {e}. Retrying in 5 seconds...")
             time.sleep(5)
 
-# Auto-start the consumer thread when the app is ready
-threading.Thread(target=start_notification_service, daemon=True).start()
+# 🚩 DO NOT call django.setup() here!
+# 🚩 Start thread only when app is running (use management command or separate worker)
